@@ -29,7 +29,7 @@ HOMEWORK_VERDICTS = {
 
 
 def check_tokens():
-    """Проверка наличия всех токенов"""
+    """Проверка наличия всех токенов."""
     logging.info('Проверка наличия всех токенов.')
     tokens = [
         PRACTICUM_TOKEN,
@@ -48,7 +48,7 @@ def check_tokens():
 
 
 def send_message(bot, message):
-    """Отправка сообщения в Telegram-чат"""
+    """Отправка сообщения в Telegram-чат."""
     try:
         logging.info('Начало отправки сообщения в Telegram')
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
@@ -62,7 +62,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(timestamp):
-    """Запрос к API"""
+    """Запрос к API."""
     try:
         logging.info('Выполняется запрос к API.')
         response = requests.get(
@@ -83,7 +83,7 @@ def get_api_answer(timestamp):
 
 
 def check_response(response):
-    """Проверка ответа API"""
+    """Проверка ответа API."""
     logging.info('Проводим проверки ответа API.')
     if not isinstance(response, dict):
         raise TypeError('Ответ не содержит словарь.')
@@ -98,7 +98,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Извлечение информации о статусе работы"""
+    """Извлечение информации о статусе работы."""
     logging.info('Извлекаем информацию о статусе работы.')
     if 'homework_name' not in homework:
         raise WrongParseStatus('Отсутствует ключ homework_name.')
