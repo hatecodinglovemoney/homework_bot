@@ -8,8 +8,8 @@ import telegram
 
 from dotenv import load_dotenv
 
-from exceptions import WrongGetApiAnswer, TelegramError, \
-    WrongCheckResponse, WrongParseStatus
+import text_messages
+from exceptions import TelegramError
 
 load_dotenv()
 
@@ -30,112 +30,176 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Проверка наличия всех токенов."""
-    logging.info('Проверка наличия всех токенов.')
-    tokens = [
-        PRACTICUM_TOKEN,
-        TELEGRAM_TOKEN,
-        TELEGRAM_CHAT_ID,
-    ]
-    for token in tokens:
-        if token is None:
+    logging.info(text_messages.LOG_INFO_START_CHECK_TOKENS)
+    none_tokens = []
+    tokens = {
+        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
+        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
+        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
+    }
+    for token_name in tokens:
+        if tokens[token_name] is None:
+            none_tokens.append(token_name)
             logging.critical(
-                f'Отсутствует токен {token}. '
-                'Бот не может продолжить работу.'
+                text_messages.LOG_CRITICAL_CHECK_TOKENS.format(
+                    token_name=token_name
+                )
             )
-            raise ValueError(f'Токен {token} недоступен.')
-        else:
-            return all(tokens)
+            if len(none_tokens) != 0:
+                raise ValueError(
+                    text_messages.NONE_TOKENS_ERROR_CHECK_TOKENS.format(
+                        none_tokens=none_tokens
+                    )
+                )
+    return tokens
 
 
 def send_message(bot, message):
     """Отправка сообщения в Telegram-чат."""
     try:
-        logging.info('Начало отправки сообщения в Telegram')
-        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
-    except telegram.error.TelegramError as error:
-        logging.error('Ошибка отправки сообщения в Telegram.')
-        raise TelegramError(
-            f'Ошибка отправки сообщения в Telegram: {error}'
+        logging.info(
+            text_messages.LOG_INFO_START_SEND_MESSAGE.format(
+                message=message
+            )
         )
-    else:
-        logging.debug('Сообщениe отправлено в Telegram.')
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+        logging.debug(
+            text_messages.LOG_DEBAG_SEND_MESSAGE.format(
+                message=message
+            )
+        )
+    except telegram.error.TelegramError as error:
+        logging.exception(
+             text_messages.LOG_EXCEPT_SEND_MESSAGE.format(
+                message=message, error=error
+            )
+        )
+        # Избавиться от логгирования здесь нельзя - требуют тесты.
+        # Во всех остальных местах логгирование будет произведено
+        # на "последнем рубеже" (кроме проверки токенов для
+        # логгирования каждого пропущенного).
+        raise TelegramError(
+            text_messages.TELEGRAM_ERROR_SEND_MESSAGE.format(
+                error=error
+            )
+        )
 
 
 def get_api_answer(timestamp):
     """Запрос к API."""
+    params_request = {
+        'url': ENDPOINT,
+        'headers': HEADERS,
+        'params': {'from_date': timestamp},
+    }
     try:
-        logging.info('Выполняется запрос к API.')
-        response = requests.get(
-            ENDPOINT,
-            headers=HEADERS,
-            params={'from_date': timestamp}
+        response = requests.get(**params_request)
+        logging.info(
+            text_messages.LOG_INFO_START_GET_API_ANSWER.format(
+                params_request=params_request
+            )
         )
-    except Exception as error:
-        raise WrongGetApiAnswer(f'Ошибка запроса к API: {error}')
+    except requests.ConnectionError as error:
+        raise ConnectionError(
+            text_messages.CONNECTION_ERROR_GET_API_ANSWER.format(
+                error=error
+            )
+        )
+    except requests.RequestException as error:
+        raise ConnectionError(
+            text_messages.REQUEST_EXCEPTION_GET_API_ANSWER.format(
+                error=error, params_request=params_request
+            )
+        )
     if response.status_code != 200:
-        raise WrongGetApiAnswer(
-            'Неверный статус ответа API. '
-            f'Код ответа {response.status_code}.'
+        raise requests.HTTPError(
+            text_messages.HTTP_ERROR_GET_API_ANSWER.format(
+                status_code=response.status_code,
+                params_request=params_request
+            )
         )
-    else:
-        logging.debug('Ответ API получен.')
+    try:
+        logging.debug(text_messages.LOG_DEBAG_GET_API_ANSWER)
         return response.json()
+    except requests.JSONDecodeError:
+        raise ValueError(text_messages.JSON_ERROR_GET_API_ANSWER)
 
 
 def check_response(response):
     """Проверка ответа API."""
-    logging.info('Проводим проверки ответа API.')
+    logging.info(text_messages.LOG_INFO_START_CHECK_RESPONSE)
     if not isinstance(response, dict):
-        raise TypeError('Ответ не содержит словарь.')
+        raise TypeError(text_messages.NOT_DICT_ERROR_CHECK_RESPONSE.format(
+            type=type(response)
+        )
+        )
     if 'homeworks' not in response:
-        raise WrongCheckResponse('Отсутствует ключ homeworks.')
+        raise KeyError(text_messages.HOMEWORKS_KEY_ERROR_CHECK_RESPONSE)
     homeworks = response.get('homeworks')
     if not isinstance(homeworks, list):
-        raise TypeError('homeworks не является list.')
-    else:
-        logging.debug('Ответ API содержит homeworks.')
-        return homeworks
+        raise TypeError(
+            text_messages.NOT_LIST_ERROR_CHECK_RESPONSE.format(
+                type=type(homeworks)
+            )
+        )
+    logging.debug(text_messages.LOG_DEBAG_CHECK_RESPONSE)
+    return homeworks
 
 
 def parse_status(homework):
     """Извлечение информации о статусе работы."""
-    logging.info('Извлекаем информацию о статусе работы.')
     if 'homework_name' not in homework:
-        raise WrongParseStatus('Отсутствует ключ homework_name.')
-    homework_name = homework.get('homework_name')
+        raise KeyError(text_messages.HOMEWORK_NAME_KEY_ERROR_PARSE_STATUS)
+    homework.get('homework_name')
     if 'status' not in homework:
-        raise WrongParseStatus('Отсутствует ключ status.')
+        raise KeyError(text_messages.STATUS_NAME_KEY_ERROR_PARSE_STATUS)
     status = homework.get('status')
     if status not in HOMEWORK_VERDICTS:
-        raise WrongParseStatus(f'Неизвестный статус работы - {status}')
-    else:
-        verdict = HOMEWORK_VERDICTS[status]
-        logging.debug('Информация о статусе работы получена.')
-        return (f'Изменился статус проверки работы '
-                f'"{homework_name}". {verdict}')
+        raise IndexError(
+            text_messages.STATUS_ERROR_PARSE_STATUS.format(
+                status=status
+            )
+        )
+    logging.debug(text_messages.LOG_DEBAG_PARSE_STATUS)
+    return (text_messages.MESSAGE_PARSE_STATUS.format(
+        homework_name=homework.get('homework_name'),
+        verdict=HOMEWORK_VERDICTS[status]
+    )
+    )
 
 
 def main():
     """Основная логика работы бота."""
-    if not check_tokens():
-        sys.exit('Бот остановлен.')
+    check_tokens()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
-    logging.info('Бот начал работу.')
+    last_message = ''
+    logging.info(text_messages.LOG_INFO_MAIN)
     while True:
         try:
             response = get_api_answer(timestamp)
+            timestamp = response.get('current_date')
             homeworks = check_response(response)
             if homeworks:
                 message = parse_status(homeworks[0])
-            else:
-                message = 'Нет новых статусов.'
-            send_message(bot, message)
-            logging.debug('Бот успешно закончил работу.')
+                if last_message != message:
+                    send_message(bot, message)
+                    last_message = message
+                    logging.debug(text_messages.LOG_DEBUG_MAIN)
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            logging.error(message, exc_info=True)
-            send_message(bot, message)
+            logging.exception(
+                text_messages.LOG_EXCEPT_MAIN.format(
+                    error=error
+                )
+            )
+            # Надеюсь, что правильно поняла ваш комментарий, совсем
+            # убрав пересылку об ошибках в телеграм, хоть она и была
+            # в изначальном ТЗ. Я оставила бросок в строке 81.
+            # В идеале, убрать лишнее логгирование в строке 72.
+            # Если нужна пересылка в телеграм - добавлю ее здесь,
+            # но уберу бросок в строке 81, а лишнее логгирование
+            # перестанет быть лишним. Или оставлю бросок,
+            # но добавлю ветвление здесь. Надеюсь, что правильно разобралась.
         finally:
             time.sleep(RETRY_PERIOD)
 
@@ -145,9 +209,10 @@ if __name__ == '__main__':
         level=logging.DEBUG,
         handlers=[
             logging.FileHandler(
-                filename='main.log', mode='w', encoding='UTF-8'),
+                filename=__file__ + '.log', mode='w', encoding='UTF-8'),
             logging.StreamHandler(stream=sys.stdout)
         ],
-        format='%(asctime)s, %(levelname)s, %(message)s',
+        format='%(asctime)s, %(levelname)s, %(funcName)s, '
+               '%(lineno)s, %(message)s',
     )
     main()
