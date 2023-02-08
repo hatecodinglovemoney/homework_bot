@@ -1,4 +1,4 @@
-LOG_INFO_START_CHECK_TOKENS = 'Проверка наличия всех токенов.'
+LOG_DEBUG_START_CHECK_TOKENS = 'Проверка наличия всех токенов.'
 LOG_CRITICAL_CHECK_TOKENS = ('Отсутствует токен_ы {none_tokens}. '
                              'Бот не может продолжить работу.')
 NONE_TOKENS_ERROR_CHECK_TOKENS = ('Список недоступных токенов: '
@@ -34,5 +34,6 @@ STATUS_ERROR_PARSE_STATUS = 'Неизвестный статус работы - 
 LOG_DEBAG_PARSE_STATUS = 'Информация о статусе работы получена.'
 LOG_INFO_MAIN = 'Бот начал работу.'
 LOG_DEBUG_MAIN = 'Бот успешно отправил статус в Telegram.'
+LOG_DEBUG_NO_STATUS_MAIN = 'Нет новых статусов.'
 LOG_EXCEPT_MAIN = 'Сбой в работе программы: {error}'
 MAIN_ERROR_MESSAGE = 'Сбой в работе программы: {error}'

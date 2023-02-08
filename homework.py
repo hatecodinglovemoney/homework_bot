@@ -35,7 +35,7 @@ TOKENS = [
 
 def check_tokens():
     """Проверка наличия всех токенов."""
-    logging.info(text_messages.LOG_INFO_START_CHECK_TOKENS)
+    logging.debug(text_messages.LOG_DEBUG_START_CHECK_TOKENS)
     none_tokens = [token_name for token_name
                    in TOKENS if globals()[token_name] is None]
     if len(none_tokens) != 0:
@@ -165,7 +165,7 @@ def parse_status(homework):
     )
 
 
-def main():
+def main():  # noqa: C901
     """Основная логика работы бота."""
     check_tokens()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
@@ -177,11 +177,12 @@ def main():
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
             if not homeworks:
+                logging.debug(text_messages.LOG_DEBUG_NO_STATUS_MAIN)
                 continue
             message = parse_status(homeworks[0])
             if last_message != message:
-                send_message(bot, message)
                 try:
+                    send_message(bot, message)
                     logging.debug(text_messages.LOG_DEBUG_MAIN)
                     last_message = message
                     timestamp = response.get('current_date', timestamp)
@@ -201,8 +202,8 @@ def main():
                         error=error
                     )
                 )
-                send_message(bot, message)
                 try:
+                    send_message(bot, message)
                     last_message = message
                 except Exception as error:
                     logging.exception(
