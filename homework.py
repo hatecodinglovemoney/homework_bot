@@ -36,7 +36,8 @@ TOKENS = [
 def check_tokens():
     """Проверка наличия всех токенов."""
     logging.info(text_messages.LOG_INFO_START_CHECK_TOKENS)
-    none_tokens = [token_name for token_name in TOKENS if globals()[token_name] is None]
+    none_tokens = [token_name for token_name
+                   in TOKENS if globals()[token_name] is None]
     if len(none_tokens) != 0:
         logging.critical(
             text_messages.LOG_CRITICAL_CHECK_TOKENS.format(
