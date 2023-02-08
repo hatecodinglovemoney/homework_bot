@@ -5,11 +5,10 @@ import time
 
 import requests
 import telegram
-
 from dotenv import load_dotenv
 
 import text_messages
-from exceptions import TelegramError
+from exceptions import ApiAnswerError
 
 load_dotenv()
 
@@ -27,31 +26,28 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
+TOKENS = [
+    'PRACTICUM_TOKEN',
+    'TELEGRAM_TOKEN',
+    'TELEGRAM_CHAT_ID',
+]
+
 
 def check_tokens():
     """Проверка наличия всех токенов."""
     logging.info(text_messages.LOG_INFO_START_CHECK_TOKENS)
-    none_tokens = []
-    tokens = {
-        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
-        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
-        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
-    }
-    for token_name in tokens:
-        if tokens[token_name] is None:
-            none_tokens.append(token_name)
-            logging.critical(
-                text_messages.LOG_CRITICAL_CHECK_TOKENS.format(
-                    token_name=token_name
-                )
+    none_tokens = [token_name for token_name in TOKENS if globals()[token_name] is None]
+    if len(none_tokens) != 0:
+        logging.critical(
+            text_messages.LOG_CRITICAL_CHECK_TOKENS.format(
+                none_tokens=none_tokens
             )
-            if len(none_tokens) != 0:
-                raise ValueError(
-                    text_messages.NONE_TOKENS_ERROR_CHECK_TOKENS.format(
-                        none_tokens=none_tokens
-                    )
-                )
-    return tokens
+        )
+        raise ValueError(
+            text_messages.NONE_TOKENS_ERROR_CHECK_TOKENS.format(
+                none_tokens=none_tokens
+            )
+        )
 
 
 def send_message(bot, message):
@@ -75,15 +71,6 @@ def send_message(bot, message):
                 error=error
             )
         )
-        # Избавиться от логгирования здесь нельзя - требуют тесты.
-        # Во всех остальных местах логгирование будет произведено
-        # на "последнем рубеже" (кроме проверки токенов для
-        # логгирования каждого пропущенного).
-        raise TelegramError(
-            text_messages.TELEGRAM_ERROR_SEND_MESSAGE.format(
-                error=error
-            )
-        )
 
 
 def get_api_answer(timestamp):
@@ -95,17 +82,6 @@ def get_api_answer(timestamp):
     }
     try:
         response = requests.get(**params_request)
-        logging.info(
-            text_messages.LOG_INFO_START_GET_API_ANSWER.format(
-                params_request=params_request
-            )
-        )
-    except requests.ConnectionError as error:
-        raise ConnectionError(
-            text_messages.CONNECTION_ERROR_GET_API_ANSWER.format(
-                error=error
-            )
-        )
     except requests.RequestException as error:
         raise ConnectionError(
             text_messages.REQUEST_EXCEPTION_GET_API_ANSWER.format(
@@ -113,29 +89,41 @@ def get_api_answer(timestamp):
             )
         )
     if response.status_code != 200:
-        raise requests.HTTPError(
-            text_messages.HTTP_ERROR_GET_API_ANSWER.format(
+        raise ApiAnswerError(
+            text_messages.HTTP_NOT_OK_ERROR_GET_API_ANSWER.format(
                 status_code=response.status_code,
                 params_request=params_request
             )
         )
-    try:
-        logging.debug(text_messages.LOG_DEBAG_GET_API_ANSWER)
-        return response.json()
-    except requests.JSONDecodeError:
-        raise ValueError(text_messages.JSON_ERROR_GET_API_ANSWER)
+    if 'error' in response.json():
+        raise ApiAnswerError(
+            text_messages.RESPONSE_ERROR_GET_API_MESSAGE.format(
+                error=response.json()['error']
+            )
+        )
+    if 'code' in response.json():
+        raise ApiAnswerError(
+            text_messages.RESPONSE_ERROR_CODE_GET_API_MESSAGE.format(
+                code=response.json()['code']
+            )
+        )
+    logging.debug(text_messages.LOG_DEBAG_GET_API_ANSWER)
+    return response.json()
 
 
 def check_response(response):
     """Проверка ответа API."""
     logging.info(text_messages.LOG_INFO_START_CHECK_RESPONSE)
     if not isinstance(response, dict):
-        raise TypeError(text_messages.NOT_DICT_ERROR_CHECK_RESPONSE.format(
-            type=type(response)
-        )
+        raise TypeError(
+            text_messages.NOT_DICT_ERROR_CHECK_RESPONSE.format(
+                type=type(response)
+            )
         )
     if 'homeworks' not in response:
-        raise KeyError(text_messages.HOMEWORKS_KEY_ERROR_CHECK_RESPONSE)
+        raise KeyError(
+            text_messages.HOMEWORKS_KEY_ERROR_CHECK_RESPONSE
+        )
     homeworks = response.get('homeworks')
     if not isinstance(homeworks, list):
         raise TypeError(
@@ -150,22 +138,26 @@ def check_response(response):
 def parse_status(homework):
     """Извлечение информации о статусе работы."""
     if 'homework_name' not in homework:
-        raise KeyError(text_messages.HOMEWORK_NAME_KEY_ERROR_PARSE_STATUS)
-    homework.get('homework_name')
+        raise KeyError(
+            text_messages.HOMEWORK_NAME_KEY_ERROR_PARSE_STATUS
+        )
     if 'status' not in homework:
-        raise KeyError(text_messages.STATUS_NAME_KEY_ERROR_PARSE_STATUS)
+        raise KeyError(
+            text_messages.STATUS_NAME_KEY_ERROR_PARSE_STATUS
+        )
     status = homework.get('status')
     if status not in HOMEWORK_VERDICTS:
-        raise IndexError(
+        raise ValueError(
             text_messages.STATUS_ERROR_PARSE_STATUS.format(
                 status=status
             )
         )
     logging.debug(text_messages.LOG_DEBAG_PARSE_STATUS)
-    return (text_messages.MESSAGE_PARSE_STATUS.format(
-        homework_name=homework.get('homework_name'),
-        verdict=HOMEWORK_VERDICTS[status]
-    )
+    return (
+        text_messages.MESSAGE_PARSE_STATUS.format(
+            homework_name=homework.get('homework_name'),
+            verdict=HOMEWORK_VERDICTS[status]
+        )
     )
 
 
@@ -179,28 +171,27 @@ def main():
     while True:
         try:
             response = get_api_answer(timestamp)
-            timestamp = response.get('current_date')
             homeworks = check_response(response)
-            if homeworks:
-                message = parse_status(homeworks[0])
-                if last_message != message:
-                    send_message(bot, message)
-                    last_message = message
-                    logging.debug(text_messages.LOG_DEBUG_MAIN)
+            if not homeworks:
+                continue
+            message = parse_status(homeworks[0])
+            if last_message != message:
+                send_message(bot, message)
+                last_message = message
+                logging.debug(text_messages.LOG_DEBUG_MAIN)
+            timestamp = response.get('current_date', timestamp)
         except Exception as error:
+            message = text_messages.MAIN_ERROR_MESSAGE.format(
+                error=error
+            )
             logging.exception(
                 text_messages.LOG_EXCEPT_MAIN.format(
                     error=error
                 )
             )
-            # Надеюсь, что правильно поняла ваш комментарий, совсем
-            # убрав пересылку об ошибках в телеграм, хоть она и была
-            # в изначальном ТЗ. Я оставила бросок в строке 82.
-            # В идеале, убрать лишнее логгирование в строке 71.
-            # Если нужна пересылка в телеграм - добавлю ее здесь,
-            # но уберу бросок в строке 82, а лишнее логгирование
-            # перестанет быть лишним. Или оставлю бросок,
-            # но добавлю ветвление здесь. Надеюсь, что правильно разобралась.
+            if last_message != message:
+                send_message(bot, message)
+                last_message = message
         finally:
             time.sleep(RETRY_PERIOD)
 

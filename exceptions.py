@@ -1,3 +1,3 @@
-class TelegramError(Exception):
-    """Ошибка отправки сообщения в Telegram"""
+class ApiAnswerError(Exception):
+    """Ошибка ответа API"""
     pass

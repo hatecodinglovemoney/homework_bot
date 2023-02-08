@@ -1,5 +1,5 @@
 LOG_INFO_START_CHECK_TOKENS = 'Проверка наличия всех токенов.'
-LOG_CRITICAL_CHECK_TOKENS = ('Отсутствует токен {token_name}. '
+LOG_CRITICAL_CHECK_TOKENS = ('Отсутствует токен_ы {none_tokens}. '
                              'Бот не может продолжить работу.')
 NONE_TOKENS_ERROR_CHECK_TOKENS = ('Список недоступных токенов: '
                                   '{none_tokens}.')
@@ -11,16 +11,15 @@ LOG_EXCEPT_SEND_MESSAGE = ('Ошибка отправки сообщения '
                            '"{message}" в Telegram: {error}')
 TELEGRAM_ERROR_SEND_MESSAGE = ('Ошибка отправки сообщения '
                                'в Telegram: {error}')
-LOG_INFO_START_GET_API_ANSWER = ('Начало запроса к API. '
-                                 'Параметры запроса: {params_request}')
 CONNECTION_ERROR_GET_API_ANSWER = 'Ошибка соединения: {error}.'
 REQUEST_EXCEPTION_GET_API_ANSWER = ('Ошибка запроса к API: {error}. '
                                     'Параметры запроса: {params_request}')
-HTTP_ERROR_GET_API_ANSWER = ('Не удалось получить ответ API. '
-                             'Код полученного ответа: {status_code}. '
-                             'Параметры запроса: {params_request}')
+HTTP_NOT_OK_ERROR_GET_API_ANSWER = ('Не удалось получить ответ API. '
+                                    'Код полученного ответа: {status_code}. '
+                                    'Параметры запроса: {params_request}')
+RESPONSE_ERROR_GET_API_MESSAGE = 'Отказ сервера. Информация об ошибке: {error}'
+RESPONSE_ERROR_CODE_GET_API_MESSAGE = 'Отказ сервера. Код ошибки {code}'
 LOG_DEBAG_GET_API_ANSWER = 'Ответ API получен.'
-JSON_ERROR_GET_API_ANSWER = 'Ответ сервера не соответствует формату JSON'
 LOG_INFO_START_CHECK_RESPONSE = 'Проводим проверки ответа API.'
 NOT_DICT_ERROR_CHECK_RESPONSE = 'Ответ содержит не словарь, а {type}.'
 HOMEWORKS_KEY_ERROR_CHECK_RESPONSE = 'Отсутствует ключ homeworks.'
@@ -35,3 +34,4 @@ LOG_DEBAG_PARSE_STATUS = 'Информация о статусе работы п
 LOG_INFO_MAIN = 'Бот начал работу.'
 LOG_DEBUG_MAIN = 'Бот успешно отправил статус в Telegram.'
 LOG_EXCEPT_MAIN = 'Сбой в работе программы: {error}'
+MAIN_ERROR_MESSAGE = 'Сбой в работе программы: {error}'
