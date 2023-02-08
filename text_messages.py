@@ -35,5 +35,4 @@ LOG_DEBAG_PARSE_STATUS = 'Информация о статусе работы п
 LOG_INFO_MAIN = 'Бот начал работу.'
 LOG_DEBUG_MAIN = 'Бот успешно отправил статус в Telegram.'
 LOG_DEBUG_NO_STATUS_MAIN = 'Нет новых статусов.'
-LOG_EXCEPT_MAIN = 'Сбой в работе программы: {error}'
 MAIN_ERROR_MESSAGE = 'Сбой в работе программы: {error}'

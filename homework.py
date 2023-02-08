@@ -38,7 +38,7 @@ def check_tokens():
     logging.debug(text_messages.LOG_DEBUG_START_CHECK_TOKENS)
     none_tokens = [token_name for token_name
                    in TOKENS if globals()[token_name] is None]
-    if len(none_tokens) != 0:
+    if none_tokens:
         logging.critical(
             text_messages.LOG_CRITICAL_CHECK_TOKENS.format(
                 none_tokens=none_tokens
@@ -98,11 +98,7 @@ def get_api_answer(timestamp):
             )
         )
     response_json = response.json()
-    api_error_keys = [
-        'error',
-        'code',
-    ]
-    for error_key in api_error_keys:
+    for error_key in ['error', 'code']:
         if error_key in response_json:
             raise ApiAnswerErrorKey(
                 text_messages.RESPONSE_ERROR_GET_API_MESSAGE.format(
@@ -165,7 +161,7 @@ def parse_status(homework):
     )
 
 
-def main():  # noqa: C901
+def main():
     """Основная логика работы бота."""
     check_tokens()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
@@ -181,27 +177,16 @@ def main():  # noqa: C901
                 continue
             message = parse_status(homeworks[0])
             if last_message != message:
-                try:
-                    send_message(bot, message)
-                    logging.debug(text_messages.LOG_DEBUG_MAIN)
-                    last_message = message
-                    timestamp = response.get('current_date', timestamp)
-                except Exception as error:
-                    logging.exception(
-                        text_messages.LOG_EXCEPT_SEND_MESSAGE.format(
-                            message=message, error=error
-                        )
-                    )
+                send_message(bot, message)
+                logging.debug(text_messages.LOG_DEBUG_MAIN)
+                last_message = message
+                timestamp = response.get('current_date', timestamp)
         except Exception as error:
             message = text_messages.MAIN_ERROR_MESSAGE.format(
                 error=error
             )
+            logging.exception(message)
             if last_message != message:
-                logging.exception(
-                    text_messages.LOG_EXCEPT_MAIN.format(
-                        error=error
-                    )
-                )
                 try:
                     send_message(bot, message)
                     last_message = message
