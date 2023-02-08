@@ -8,7 +8,7 @@ import telegram
 from dotenv import load_dotenv
 
 import text_messages
-from exceptions import ApiAnswerError
+from exceptions import ApiAnswerError, ApiAnswerErrorKey
 
 load_dotenv()
 
@@ -86,7 +86,8 @@ def get_api_answer(timestamp):
     except requests.RequestException as error:
         raise ConnectionError(
             text_messages.REQUEST_EXCEPTION_GET_API_ANSWER.format(
-                error=error, params_request=params_request
+                error=error,
+                params_request=params_request
             )
         )
     if response.status_code != 200:
@@ -96,25 +97,27 @@ def get_api_answer(timestamp):
                 params_request=params_request
             )
         )
-    if 'error' in response.json():
-        raise ApiAnswerError(
-            text_messages.RESPONSE_ERROR_GET_API_MESSAGE.format(
-                error=response.json()['error']
+    response_json = response.json()
+    api_error_keys = [
+        'error',
+        'code',
+    ]
+    for error_key in api_error_keys:
+        if error_key in response_json:
+            raise ApiAnswerErrorKey(
+                text_messages.RESPONSE_ERROR_GET_API_MESSAGE.format(
+                    error_key=error_key,
+                    error=response_json[error_key],
+                    params_request=params_request
+                )
             )
-        )
-    if 'code' in response.json():
-        raise ApiAnswerError(
-            text_messages.RESPONSE_ERROR_CODE_GET_API_MESSAGE.format(
-                code=response.json()['code']
-            )
-        )
     logging.debug(text_messages.LOG_DEBAG_GET_API_ANSWER)
-    return response.json()
+    return response_json
 
 
 def check_response(response):
     """Проверка ответа API."""
-    logging.info(text_messages.LOG_INFO_START_CHECK_RESPONSE)
+    logging.debug(text_messages.LOG_INFO_START_CHECK_RESPONSE)
     if not isinstance(response, dict):
         raise TypeError(
             text_messages.NOT_DICT_ERROR_CHECK_RESPONSE.format(
@@ -178,21 +181,35 @@ def main():
             message = parse_status(homeworks[0])
             if last_message != message:
                 send_message(bot, message)
-                last_message = message
-                logging.debug(text_messages.LOG_DEBUG_MAIN)
-            timestamp = response.get('current_date', timestamp)
+                try:
+                    logging.debug(text_messages.LOG_DEBUG_MAIN)
+                    last_message = message
+                    timestamp = response.get('current_date', timestamp)
+                except Exception as error:
+                    logging.exception(
+                        text_messages.LOG_EXCEPT_SEND_MESSAGE.format(
+                            message=message, error=error
+                        )
+                    )
         except Exception as error:
             message = text_messages.MAIN_ERROR_MESSAGE.format(
                 error=error
             )
-            logging.exception(
-                text_messages.LOG_EXCEPT_MAIN.format(
-                    error=error
-                )
-            )
             if last_message != message:
+                logging.exception(
+                    text_messages.LOG_EXCEPT_MAIN.format(
+                        error=error
+                    )
+                )
                 send_message(bot, message)
-                last_message = message
+                try:
+                    last_message = message
+                except Exception as error:
+                    logging.exception(
+                        text_messages.LOG_EXCEPT_SEND_MESSAGE.format(
+                            message=message, error=error
+                        )
+                    )
         finally:
             time.sleep(RETRY_PERIOD)
 

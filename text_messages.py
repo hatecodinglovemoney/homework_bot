@@ -17,8 +17,9 @@ REQUEST_EXCEPTION_GET_API_ANSWER = ('Ошибка запроса к API: {error}
 HTTP_NOT_OK_ERROR_GET_API_ANSWER = ('Не удалось получить ответ API. '
                                     'Код полученного ответа: {status_code}. '
                                     'Параметры запроса: {params_request}')
-RESPONSE_ERROR_GET_API_MESSAGE = 'Отказ сервера. Информация об ошибке: {error}'
-RESPONSE_ERROR_CODE_GET_API_MESSAGE = 'Отказ сервера. Код ошибки {code}'
+RESPONSE_ERROR_GET_API_MESSAGE = ('Отказ сервера. В ответе сервера найден ключ: '
+                                  '{error_key}. Ошибка: {error}. '
+                                  'Параметры запроса: {params_request}')
 LOG_DEBAG_GET_API_ANSWER = 'Ответ API получен.'
 LOG_INFO_START_CHECK_RESPONSE = 'Проводим проверки ответа API.'
 NOT_DICT_ERROR_CHECK_RESPONSE = 'Ответ содержит не словарь, а {type}.'
